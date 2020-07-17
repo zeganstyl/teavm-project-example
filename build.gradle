@@ -59,38 +59,23 @@ task copyRuntimeResources(type: Copy) {
 task teavmCompile(type: Exec) {
     dependsOn(copyRuntimeClasses, copyRuntimeResources)
 
-    def jars = new ArrayList<File>()
-
+    println("=== dependencies ===")
     configurations.runtimeClasspath.collect {
-        if (checkDependency(it)) jars.add(it)
+        if (checkDependency(it)) println(it.name)
         true
     }
 
-    println("=== dependencies ===")
-    jars.forEach { println(it.name) }
-
-    def command = new ArrayList<String>()
-    command.addAll([
+    commandLine([
             "java",
             "-jar",
             "teavm.jar",
             "--classpath",
             "$buildDir/classes/dependencies",
             "$buildDir/classes/kotlin/main",
-            "$buildDir/classes/kotlin/test"
-    ])
-
-    for (File file : jars) {
-        command.add(file.path)
-    }
-
-    command.addAll([
             "--targetdir",
             "build/teavm",
             "--debug",
             "--sourcemaps",
             "com.example.Main"
     ])
-
-    commandLine(command)
 }
