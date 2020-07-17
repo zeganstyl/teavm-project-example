@@ -14,9 +14,10 @@ import org.ksdfv.thelema.teavm.TeaVMApp
 object Main {
     @JvmStatic
     fun main(args: Array<String>) {
-        TeaVMApp {
-            @Language("GLSL")
-            val shader = Shader(
+        val app = TeaVMApp()
+
+        @Language("GLSL")
+        val shader = Shader(
                 vertCode = """
 attribute vec3 aPosition;
 varying vec3 vPosition;
@@ -32,27 +33,28 @@ varying vec3 vPosition;
 void main() {
     gl_FragColor = vec4(vPosition, 1.0);
 }"""
-            )
+        )
 
-            val box = BoxMeshBuilder().build()
+        val box = BoxMeshBuilder().build()
 
-            val control = OrbitCameraControl()
-            control.listenToMouse()
+        val control = OrbitCameraControl()
+        control.listenToMouse()
 
-            GL.glClearColor(0f, 0f, 0f, 1f)
+        GL.glClearColor(0f, 0f, 0f, 1f)
 
-            GL.isDepthTestEnabled = true
+        GL.isDepthTestEnabled = true
 
-            GL.render {
-                GL.glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
+        GL.render {
+            GL.glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
-                control.update(APP.deltaTime)
-                ActiveCamera.update()
+            control.update(APP.deltaTime)
+            ActiveCamera.update()
 
-                shader.bind()
-                shader["viewProj"] = ActiveCamera.viewProjectionMatrix
-                box.render(shader)
-            }
+            shader.bind()
+            shader["viewProj"] = ActiveCamera.viewProjectionMatrix
+            box.render(shader)
         }
+
+        app.startLoop()
     }
 }
