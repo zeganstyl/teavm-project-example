@@ -1,0 +1,96 @@
+import java.util.regex.Pattern
+
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.3.72'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    implementation "org.ksdfv.thelema:thelema-teavm:0.3.0"
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+static Boolean checkDependency(File file) {
+    def name = file.name
+    if (name.contains("thelema")) return true
+    return !(name.contains("teavm") ||
+            name.contains("gson") ||
+            name.contains("jzlib") ||
+            name.contains("joda-time") ||
+            name.contains("annotations")
+    )
+}
+
+task copyRuntimeClasses(type: Copy) {
+    dependsOn(build)
+
+    configurations.runtimeClasspath.collect {
+        if (checkDependency(it)) {
+            from(zipTree(it).matching {
+                include("**/*.class")
+            })
+        }
+        true
+    }
+
+    includeEmptyDirs = false
+
+    into("$buildDir/classes/dependencies")
+}
+
+task copyRuntimeResources(type: Copy) {
+    from("$buildDir/resources/main")
+    into("$buildDir/teavm")
+}
+
+task teavmCompile(type: Exec) {
+    dependsOn(copyRuntimeClasses, copyRuntimeResources)
+
+    def jars = new ArrayList<File>()
+
+    configurations.runtimeClasspath.collect {
+        if (checkDependency(it)) jars.add(it)
+        true
+    }
+
+    println("=== dependencies ===")
+    jars.forEach { println(it.name) }
+
+    def command = new ArrayList<String>()
+    command.addAll([
+            "java",
+            "-jar",
+            "teavm.jar",
+            "--classpath",
+            "$buildDir/classes/dependencies",
+            "$buildDir/classes/kotlin/main",
+            "$buildDir/classes/kotlin/test"
+    ])
+
+    for (File file : jars) {
+        command.add(file.path)
+    }
+
+    command.addAll([
+            "--targetdir",
+            "build/teavm",
+            "--debug",
+            "--sourcemaps",
+            "com.example.Main"
+    ])
+
+    commandLine(command)
+}
